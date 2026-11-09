@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bill Book App</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #e5e7eb; margin: 0; display: flex; justify-content: center; padding: 20px; }
+    .app { background: white; width: 100%; max-width: 400px; padding: 20px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #111827; margin-bottom: 20px; }
+    .input-group { display: flex; gap: 10px; margin-bottom: 15px; }
+    input { padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; width: 100%; box-sizing: border-box; }
+    button { background: #10b981; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 15px;}
+    button:hover { background: #059669; }
+    .bill-item { display: flex; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding: 10px 0; }
+    .total-section { font-size: 1.25rem; font-weight: bold; text-align: right; margin-top: 15px; color: #1f2937; }
+    #qr-container { display: flex; justify-content: center; margin-top: 20px; padding: 15px; border: 2px dashed #d1d5db; border-radius: 8px;}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h2 contenteditable="true" style="border-bottom: 1px solid #eee; padding-bottom: 10px;">My Shop Name</h2>
+    
+    <div class="input-group">
+      <input type="text" id="itemName" placeholder="Item name">
+    </div>
+    <div class="input-group">
+      <input type="number" id="itemPrice" placeholder="Price (₹)">
+      <input type="number" id="itemQty" placeholder="Qty" value="1">
+    </div>
+    <button onclick="addItem()">Add to Bill</button>
+
+    <div id="billItems"></div>
+    
+    <div class="total-section">
+      Total: ₹<span id="grandTotal">0</span>
+    </div>
+
+    <div class="input-group" style="margin-top: 20px;">
+      <input type="text" id="upiId" placeholder="Enter Shop UPI ID (e.g., name@upi)">
+    </div>
+    
+    <div id="qr-container">
+      <div id="qrcode"></div>
+    </div>
+    <p style="text-align: center; font-size: 12px; color: #6b7280;">Scan to Pay</p>
+  </div>
+
+  <script>
+    let total = 0;
+    const qrcode = new QRCode(document.getElementById("qrcode"), { width: 128, height: 128 });
+
+    function addItem() {
+      const name = document.getElementById('itemName').value;
+      const price = parseFloat(document.getElementById('itemPrice').value);
+      const qty = parseInt(document.getElementById('itemQty').value);
+
+      if (!name || isNaN(price) || isNaN(qty)) return alert("Invalid item details");
+
+      const itemTotal = price * qty;
+      total += itemTotal;
+
+      const div = document.createElement('div');
+      div.className = 'bill-item';
+      div.innerHTML = `<span>${name} (x${qty})</span><span>₹${itemTotal}</span>`;
+      
+      document.getElementById('billItems').appendChild(div);
+      document.getElementById('grandTotal').innerText = total;
+
+      // Clear inputs
+      document.getElementById('itemName').value = '';
+      document.getElementById('itemPrice').value = '';
+      document.getElementById('itemQty').value = '1';
+
+      updateQR();
+    }
+
+    document.getElementById('upiId').addEventListener('input', updateQR);
+
+    function updateQR() {
+      const upi = document.getElementById('upiId').value;
+      if (upi && total > 0) {
+        // Standard UPI Intent string
+        const upiString = `upi://pay?pa=${upi}&pn=Shop&am=${total}&cu=INR`;
+        qrcode.clear();
+        qrcode.makeCode(upiString);
+      }
+    }
+  </script>
+</body>
+</html>

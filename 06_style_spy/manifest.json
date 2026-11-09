@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Style Spy",
+  "version": "1.0",
+  "description": "Extract colors and fonts from any webpage.",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

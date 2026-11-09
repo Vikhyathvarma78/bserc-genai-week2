@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { width: 320px; font-family: sans-serif; padding: 15px; background: #1e1e1e; color: #fff; margin: 0; }
+    h3 { margin-top: 0; color: #bb86fc; }
+    button { width: 100%; padding: 10px; background: #03dac6; color: #000; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+    button:hover { background: #018786; }
+    pre { background: #2d2d2d; padding: 10px; border-radius: 4px; font-size: 12px; white-space: pre-wrap; overflow-x: auto; margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <h3>Style Spy</h3>
+  <p style="font-size: 12px; color: #ccc;">Analyze current page to steal... err, get inspiration for its styles.</p>
+  <button id="scanBtn">Spy on Styles</button>
+  <div id="result" style="display: none;">
+    <pre id="outputCode"></pre>
+  </div>
+
+  <script>
+    document.getElementById('scanBtn').addEventListener('click', async () => {
+      let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: extractStyles
+      }, (injectionResults) => {
+        if (injectionResults && injectionResults[0]) {
+          const res = injectionResults[0].result;
+          const output = document.getElementById('outputCode');
+          
+          let cssString = "/* Stolen Styles */\n:root {\n";
+          res.colors.forEach((c, i) => {
+            cssString += `  --color-${i+1}: ${c};\n`;
+          });
+          cssString += "}\n\n/* Fonts Detected */\n";
+          res.fonts.forEach(f => {
+            cssString += `/* ${f} */\n`;
+          });
+
+          output.textContent = cssString;
+          document.getElementById('result').style.display = 'block';
+        }
+      });
+    });
+
+    // This function runs in the context of the webpage
+    function extractStyles() {
+      const elements = document.querySelectorAll('*');
+      const fontSet = new Set();
+      const colorSet = new Set();
+      
+      // Sample a subset to prevent performance issues
+      const maxSample = Math.min(elements.length, 100);
+      for(let i=0; i<maxSample; i++) {
+        const style = window.getComputedStyle(elements[i]);
+        if(style.fontFamily) {
+          // Clean up the font string
+          fontSet.add(style.fontFamily.replace(/['"]/g, ''));
+        }
+        if(style.color && style.color !== 'rgba(0, 0, 0, 0)') {
+          colorSet.add(style.color);
+        }
+        if(style.backgroundColor && style.backgroundColor !== 'rgba(0, 0, 0, 0)') {
+          colorSet.add(style.backgroundColor);
+        }
+      }
+      
+      return {
+        fonts: Array.from(fontSet).slice(0, 5),
+        colors: Array.from(colorSet).slice(0, 8)
+      };
+    }
+  </script>
+</body>
+</html>

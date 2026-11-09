@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Rally Game</title>
+  <style>
+    body { margin: 0; padding: 0; background: #222; color: #fff; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden;}
+    canvas { background: #34d399; border: 4px solid #111; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .hud { display: flex; justify-content: space-between; width: 320px; padding: 10px; font-size: 1.2rem; }
+    .mobile-controls { display: flex; width: 320px; margin-top: 20px; gap: 10px; }
+    .btn { flex: 1; padding: 20px; background: #4b5563; border: none; border-radius: 8px; color: white; font-size: 1.5rem; font-weight: bold; cursor: pointer; user-select: none; }
+    .btn:active { background: #fbbf24; color: #000; }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <span>Lap: <span id="lapCount">1/3</span></span>
+    <span>Score: <span id="scoreVal">0</span></span>
+  </div>
+  
+  <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+  <div class="mobile-controls">
+    <button class="btn" id="btnLeft">&larr;</button>
+    <button class="btn" id="btnRight">&rarr;</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Game State
+    let car = { x: 140, y: 380, w: 40, h: 60, speed: 5 };
+    let obstacles = [{x: 100, y: -100}];
+    let coins = [{x: 200, y: -300}];
+    let score = 0;
+    let lap = 1;
+    let roadStripeY = 0;
+    let isGameOver = false;
+    let keys = {};
+
+    // Input handling
+    window.addEventListener('keydown', e => keys[e.code] = true);
+    window.addEventListener('keyup', e => keys[e.code] = false);
+    
+    document.getElementById('btnLeft').addEventListener('touchstart', () => keys['ArrowLeft'] = true);
+    document.getElementById('btnLeft').addEventListener('touchend', () => keys['ArrowLeft'] = false);
+    document.getElementById('btnRight').addEventListener('touchstart', () => keys['ArrowRight'] = true);
+    document.getElementById('btnRight').addEventListener('touchend', () => keys['ArrowRight'] = false);
+
+    function update() {
+      if (isGameOver) return;
+
+      // Move car
+      if (keys['ArrowLeft'] && car.x > 40) car.x -= car.speed;
+      if (keys['ArrowRight'] && car.x < canvas.width - car.w - 40) car.x += car.speed;
+
+      // Move road stripes
+      roadStripeY += car.speed;
+      if (roadStripeY > 40) roadStripeY = 0;
+
+      // Obstacles
+      for (let obs of obstacles) {
+        obs.y += car.speed;
+        if (obs.y > canvas.height) {
+          obs.y = -50;
+          obs.x = 40 + Math.random() * (canvas.width - 120);
+          
+          // Simple lap logic based on passing obstacles
+          if (Math.random() > 0.7) {
+            lap++;
+            if(lap > 3) {
+                alert("You Win! Score: " + score);
+                document.location.reload();
+            }
+            document.getElementById('lapCount').innerText = lap + "/3";
+          }
+        }
+        
+        // Collision logic
+        if (car.x < obs.x + 40 && car.x + car.w > obs.x && car.y < obs.y + 40 && car.y + car.h > obs.y) {
+          isGameOver = true;
+          alert("Crash! Game Over. Score: " + score);
+          document.location.reload();
+        }
+      }
+
+      // Coins
+      for (let coin of coins) {
+        coin.y += car.speed;
+        if (coin.y > canvas.height) {
+          coin.y = -200;
+          coin.x = 60 + Math.random() * (canvas.width - 120);
+        }
+        
+        // Collection logic
+        if (car.x < coin.x + 20 && car.x + car.w > coin.x && car.y < coin.y + 20 && car.y + car.h > coin.y) {
+          score += 10;
+          document.getElementById('scoreVal').innerText = score;
+          coin.y = -100; // hide it and prepare to respawn
+        }
+      }
+    }
+
+    function draw() {
+      // Road
+      ctx.fillStyle = '#374151'; // Dark gray road
+      ctx.fillRect(40, 0, canvas.width - 80, canvas.height);
+      
+      // Stripes
+      ctx.fillStyle = '#ffffff';
+      for(let y = roadStripeY - 40; y < canvas.height; y += 40) {
+        ctx.fillRect(canvas.width / 2 - 5, y, 10, 20);
+      }
+
+      // Car (Auto Rickshaw representation)
+      ctx.fillStyle = '#fbbf24'; // Yellow
+      ctx.fillRect(car.x, car.y, car.w, car.h);
+      ctx.fillStyle = '#111827'; // Windshield
+      ctx.fillRect(car.x + 5, car.y + 10, car.w - 10, 15);
+
+      // Obstacles
+      ctx.fillStyle = '#ef4444'; // Red boxes
+      for (let obs of obstacles) {
+        ctx.fillRect(obs.x, obs.y, 40, 40);
+      }
+
+      // Coins
+      ctx.fillStyle = '#fbbf24'; // Gold coins
+      for (let coin of coins) {
+        ctx.beginPath();
+        ctx.arc(coin.x + 10, coin.y + 10, 10, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      if (!isGameOver) requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
+</body>
+</html>
